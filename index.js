@@ -2,6 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+// Middleware
+const auth = require('./middleware/auth');
+const hasRole = require('./middleware/role');
 
 // Express setup
 const app = express();
@@ -24,3 +27,4 @@ mongoose.connect(process.env.MONGODB_CONNECTION_STRING, {
 
 // Route setup
 app.use('/api/user', require('./routes/userRouter'));
+app.use('/api/match', auth, hasRole('admin', 'referee'), require('./routes/matchRouter'));

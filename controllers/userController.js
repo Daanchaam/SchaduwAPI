@@ -13,7 +13,7 @@ const registerUser = async(req, res) => {
   // Validation
   if (!email || !password || !passwordCheck) {
     return res.status(400).json({
-      message: 'Not all fields have been entered'
+      message: 'Not all fields have been filled in'
     });
   }
   if (password.length < 5) {

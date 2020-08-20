@@ -4,7 +4,7 @@ const hasRole = (...userRole) => {
     if (user && userRole.includes(user.role)) {
       next();
     } else {
-      res.status(403).json({ message: 'You do not have the permission to perform this action' });
+      res.status(403).json({ message: `You do not have the permission to perform this action, you only have roles ${user.role} and you need ${userRole}` });
     }
   };
 };
