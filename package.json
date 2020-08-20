@@ -1,0 +1,26 @@
+{
+  "name": "men-authentication-boilerplate",
+  "version": "1.0.0",
+  "description": "A starting place for a ME(A,V,R)N application, with user authentication and role-based permissions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "nodemon index.js",
+    "lint-fix": "eslint --ext .js . --fix"
+  },
+  "author": "Daan Hendriks",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "concurrently": "^5.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^5.10.0",
+    "nodemon": "^2.0.4"
+  },
+  "devDependencies": {
+    "eslint": "^7.7.0"
+  }
+}
