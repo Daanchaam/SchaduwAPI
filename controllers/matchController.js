@@ -25,7 +25,6 @@ const startMatch = async(req, res) => {
   }
 
   const newGame = new Game({
-    'number': 1,
     serving,
     'startTime': Date.now()
   });

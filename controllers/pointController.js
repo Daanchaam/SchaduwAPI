@@ -28,7 +28,7 @@ const addPoint = async(req, res) => {
   gameId = lastGame._id;
   try {
     // Calculate the score
-    const calculatedScore = await calculateScore(setId, gameId, winner);
+    const calculatedScore = await calculateScore(matchId, setId, gameId, winner);
     let scoreAfter;
     let finishGame = false;
     if (calculatedScore.message) {

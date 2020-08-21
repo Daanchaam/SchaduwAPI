@@ -1,10 +1,11 @@
+const Match = require('../models/matchModel');
 const Sets = require('../models/setsModel');
 
 const addGameToSet = async(gameId, setId) => {
   try {
     const currentSet = await Sets.findById(setId);
     if (currentSet.games.length === 13) {
-      console.log('maybe we should start a new set');
+      throw new Error('maybe we should start a new set');
     }
     await Sets.findByIdAndUpdate(setId, { $push: { games: { id: gameId } } });
     return { message: 'Game added to set!', gameId: gameId, setId: setId };
@@ -36,13 +37,36 @@ updateSetScore = async(gameWinner, setId) => {
   }
 };
 
-finishSet = async(setId, score) => {
-  let winner = (score.team1 === 6) ? 'team 1' : 'team 2';
+finishSet = async(matchId, setId, score) => {
+  let winner = (score.team1 > score.team2) ? 'team 1' : 'team 2';
   try {
     await Sets.findByIdAndUpdate(setId, { 'winner': winner });
+    await createNewSet(matchId);
   } catch (error) {
     throw new Error('Something went wrong finishing the set' + error.message);
   }
+};
+
+createNewSet = async(matchId) => {
+  try {
+    // Code duplication m8
+    const newGame = new Game({
+      'startTime': Date.now()
+    });
+    const savedGame = await newGame.save();
+
+    const newSet = new Sets({
+      games: [{
+        'id': savedGame._id
+      }]
+    });
+    const savedSet = await newSet.save();
+    console.log(savedSet);
+    await Match.findByIdAndUpdate(matchId, { $push: { sets: { id: savedSet._id } } });
+  } catch (error) {
+    throw new Error('something went wrong creating the new set', error.message);
+  }
+
 };
 
 module.exports = addGameToSet;
