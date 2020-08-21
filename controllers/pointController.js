@@ -7,7 +7,7 @@ const calculateScore = require('./scoreController');
  * Add point to a game given the point structure and the ID of match and game
  */
 const addPoint = async(req, res) => {
-  let { winner, cause, letPlayed, matchId, setId, gameId } = req.body;
+  let { winner, cause, letPlayed, matchId } = req.body;
 
   // Validation
   if (!winner || !cause) {
@@ -21,19 +21,11 @@ const addPoint = async(req, res) => {
       message: 'Match does not exist'
     });
   }
-  const existingSet = await Sets.findById(setId);
-  if (!existingSet) {
-    return res.status(400).json({
-      message: 'Set does not exist'
-    });
-  }
-  const existingGame = await Game.findById(gameId);
-  if (!existingGame) {
-    return res.status(400).json({
-      message: 'Game does not exist'
-    });
-  }
-
+  // Find the last set of the match
+  const lastSet = await Sets.findById(existingMatch.sets[existingMatch.sets.length - 1].id);
+  const lastGame = await Game.findById(lastSet.games[lastSet.games.length - 1].id);
+  setId = lastSet._id;
+  gameId = lastGame._id;
   try {
     // Calculate the score
     const calculatedScore = await calculateScore(setId, gameId, winner);
@@ -64,7 +56,7 @@ const addPoint = async(req, res) => {
     if (!finishGame) {
       res.status(200).json({ message: `Point ${savedPoint.scoreAfter} created!` });
     } else {
-      res.json({ 'message': `${calculatedScore.message}`, newGameId: calculatedScore.newGameId });
+      res.json({ 'message': calculatedScore.message, 'score': calculatedScore.score });
     }
   } catch (error) {
     return res.status(400).json({

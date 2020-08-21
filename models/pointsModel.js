@@ -7,6 +7,12 @@ const pointSchema = new mongoose.Schema({
   cause: {
     type: String,
   },
+  /**
+   * This one is only used in double matches, since in singles we can derive the player from the cause
+   */
+  playerCaused: {
+    type: String
+  },
   letPlayed: {
     type: Boolean,
     default: false
