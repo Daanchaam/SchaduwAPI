@@ -1,37 +1,58 @@
 import Game from "../models/gamesModel";
+import Tiebreak from "../models/tiebreakModel";
 import Points, { Point } from "../models/pointsModel";
 import gameController from "./gameController";
 import { completeScoreObject } from "../models/scoreModel";
+import tiebreakController from "./tiebreakController";
 
 class scoreController {
   public calculateScore = async (
     matchId: string,
     setId: string,
     gameId: string,
-    winner: number
+    winner: number,
+    tiebreak: boolean
   ): Promise<completeScoreObject> => {
-    const game = await Game.findById(gameId);
-    if (game) {
-      // Map points to array, so we can search it
-      var playedPoints = game.points.map(function (x: any) {
-        return x.id;
-      });
-      const points = await Points.find({ _id: { $in: playedPoints } });
-
-      // If the game is a tiebreak, we have a whole different path to follow...
-      if (game.tieBreak) {
-        // Probably a tiebreak-controller with model given it has a different structure than games do...
+    // If the game is a tiebreak, we have a whole different path to follow...
+    if (tiebreak) {
+      const tiebreak = await Tiebreak.findById(gameId);
+      if (tiebreak) {
+        return await tiebreakController.addScoreForTeam(
+          winner,
+          gameId,
+          setId,
+          matchId
+        );
+      } else {
+        throw new Error("Tiebreak has not been found!");
       }
-      // No points have been played, so we start the first one
-      if (points.length < 1) {
-        return {
-          score: winner === 1 ? "15-0" : "0-15",
-        };
-      }
-      // the rest of the calculations are moved to a different function.
-      return await this.addScoreForTeam(winner, points, gameId, setId, matchId);
     } else {
-      throw new Error("Game has not been found");
+      // Just a regular game
+      const game = await Game.findById(gameId);
+      if (game) {
+        // Map points to array, so we can search it
+        var playedPoints = game.points.map(function (x: any) {
+          return x.id;
+        });
+        const points = await Points.find({ _id: { $in: playedPoints } });
+
+        // No points have been played, so we start the first one
+        if (points.length < 1) {
+          return {
+            score: winner === 1 ? "15-0" : "0-15",
+          };
+        }
+        // the rest of the calculations are moved to a different function.
+        return await this.addScoreForTeam(
+          winner,
+          points,
+          gameId,
+          setId,
+          matchId
+        );
+      } else {
+        throw new Error("Game has not been found");
+      }
     }
   };
 

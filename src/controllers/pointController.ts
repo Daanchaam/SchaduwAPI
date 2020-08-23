@@ -1,6 +1,7 @@
 import Match from "../models/matchModel";
 import Sets from "../models/setsModel";
-import Game from "../models/gamesModel";
+import Game, { Game as GameModel } from "../models/gamesModel";
+import Tiebreak, { Tiebreak as TiebreakModel } from "../models/tiebreakModel";
 import Point from "../models/pointsModel";
 import scoreController from "./scoreController";
 import express from "express";
@@ -15,6 +16,9 @@ class pointController {
     const letPlayed: boolean | undefined = req.body.letPlayed;
     const matchId: string | undefined = req.body.matchId;
 
+    let lastGame: GameModel | TiebreakModel | null;
+    let tiebreak: boolean = false;
+
     // Validate if all parameters have been given
     if (!winner || !cause || !matchId) {
       return res.status(400).json({
@@ -28,6 +32,7 @@ class pointController {
         message: "Match does not exist",
       });
     } else if (existingMatch.winner) {
+      // And check if the match has not already been won
       return res.status(400).json({
         message: "Match has already been finished!",
         winner: existingMatch.winner,
@@ -42,10 +47,24 @@ class pointController {
         message: "Set not found..",
       });
     }
-    // Check if there is a game in the set and pick it
-    const lastGame = await Game.findById(
-      lastSet.games[lastSet.games.length - 1].id
-    );
+    // Find the correct game or tiebreak
+    // If it is the last set and there is a super tiebreak
+    if (existingMatch.sets.length === 3 && existingMatch.superTiebreak) {
+      lastGame = await Tiebreak.findById(
+        lastSet.games[lastSet.games.length - 1].id
+      );
+      tiebreak = true;
+    } else if (lastSet.games.length < 13) {
+      // If it is just a regular game
+      lastGame = await Game.findById(
+        lastSet.games[lastSet.games.length - 1].id
+      );
+    } else {
+      // If it is a tiebreak (always the 13th game in a set)
+      lastGame = await Tiebreak.findById(lastSet.games[12].id);
+      tiebreak = true;
+    }
+    // If it does not exist, return error
     if (!lastGame) {
       return res.status(400).json({
         message: "Game not found",
@@ -60,7 +79,8 @@ class pointController {
         matchId,
         setId,
         gameId,
-        winner
+        winner,
+        tiebreak
       );
 
       // Create the point

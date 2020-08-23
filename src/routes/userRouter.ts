@@ -2,6 +2,7 @@ import { Router } from "express";
 import auth from "../middleware/auth";
 import hasRole from "../middleware/role";
 import userController from "../controllers/userController";
+import { Role } from "../models/roleModel";
 
 const router = Router();
 
@@ -32,7 +33,7 @@ router.post("/login", async (req, res) => {
  * -- User must be authenticated  --
  * -- User must have role 'basic' --
  */
-router.get("/all", auth, hasRole("admin"), async (req, res) => {
+router.get("/all", auth, hasRole(Role["ROLE.ADMIN"]), async (req, res) => {
   try {
     userController.getAllUsers(req, res);
   } catch (error) {
@@ -45,12 +46,17 @@ router.get("/all", auth, hasRole("admin"), async (req, res) => {
  * -- User must be authenticated  --
  * -- User must have role 'admin' --
  */
-router.post("/addRole/:id", auth, hasRole("admin"), async (req, res) => {
-  try {
-    userController.assignRoleToUser(req, res);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+router.post(
+  "/addRole/:id",
+  auth,
+  hasRole(Role["ROLE.ADMIN"]),
+  async (req, res) => {
+    try {
+      userController.assignRoleToUser(req, res);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
   }
-});
+);
 
 module.exports = router;

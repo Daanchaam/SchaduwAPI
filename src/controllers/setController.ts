@@ -1,7 +1,8 @@
 import Match from "../models/matchModel";
 import Sets from "../models/setsModel";
 import Game from "../models/gamesModel";
-import { scoreObject } from "../models/scoreModel";
+import Tiebreak from "../models/tiebreakModel";
+import { scoreObject, matchScoreObject } from "../models/scoreModel";
 import matchController from "./matchController";
 
 class setController {
@@ -77,15 +78,20 @@ class setController {
     matchId: string,
     setId: string,
     score: scoreObject
-  ) => {
+  ): Promise<matchScoreObject> => {
     let winner = score.team1 > score.team2 ? 1 : 2;
     let winnerText = winner === 1 ? "team 1" : "team 2";
     try {
       // Update the match score
-      const score = await matchController.updateMatchScore(winner, matchId);
+      const updatedMatch = await matchController.updateMatchScore(
+        winner,
+        matchId
+      );
       await Sets.findByIdAndUpdate(setId, { winner: winnerText });
-      await this.createNewSet(matchId);
-      return score;
+      if (!updatedMatch.matchFinished) {
+        await this.createNewSet(matchId);
+      }
+      return updatedMatch;
     } catch (error) {
       throw new Error("Something went wrong finishing the set" + error.message);
     }
@@ -93,15 +99,25 @@ class setController {
 
   /**
    * Creates a new set and adds it to the match.
+   * Creates a tiebreak game instead of a regular game if supertiebreak is set to true
    * @param {string} matchId the match ID for the set to be added to
    */
   public createNewSet = async (matchId: string) => {
     try {
-      // Code duplication m8
-      const newGame = new Game({
-        startTime: Date.now(),
-      });
-      const savedGame = await newGame.save();
+      const currentMatch = await Match.findById(matchId);
+      let savedGame;
+      if (currentMatch?.superTiebreak && currentMatch.sets.length === 2) {
+        console.log("match should have a supertiebreak now??");
+        const newTiebreak = new Tiebreak({
+          startTime: Date.now(),
+        });
+        savedGame = await newTiebreak.save();
+      } else {
+        const newGame = new Game({
+          startTime: Date.now(),
+        });
+        savedGame = await newGame.save();
+      }
 
       const newSet = new Sets({
         games: [

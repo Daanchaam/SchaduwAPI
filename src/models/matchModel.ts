@@ -19,6 +19,7 @@ export interface Match extends Document {
     team1: number;
     team2: number;
   };
+  superTiebreak: boolean;
 }
 
 const matchSchema = new Schema({
@@ -64,6 +65,10 @@ const matchSchema = new Schema({
       type: Number,
       default: 0,
     },
+  },
+  superTiebreak: {
+    type: Boolean,
+    default: false,
   },
 });
 

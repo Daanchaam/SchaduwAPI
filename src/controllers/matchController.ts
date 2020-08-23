@@ -1,16 +1,14 @@
 import Match from "../models/matchModel";
-import Game from "../models/gamesModel";
 import express from "express";
-import { setUncaughtExceptionCaptureCallback } from "process";
 import setController from "./setController";
-import { scoreObject } from "../models/scoreModel";
+import { scoreObject, matchScoreObject } from "../models/scoreModel";
 
 class matchController {
   /**
    * Start match by creating the teams and the first game and set without points
    */
-  startMatch = async (req: express.Request, res: express.Response) => {
-    let { team1, team2, serving } = req.body;
+  public startMatch = async (req: express.Request, res: express.Response) => {
+    let { team1, team2, serving, superTiebreak } = req.body;
 
     // Validation
     if (!team1 || !team2 || !serving) {
@@ -38,6 +36,7 @@ class matchController {
       date: {
         startDate: Date.now(),
       },
+      superTiebreak,
     });
     const savedMatch = await newMatch.save();
     try {
@@ -78,31 +77,51 @@ class matchController {
   public updateMatchScore = async (
     setWinner: number,
     matchId: string
-  ): Promise<scoreObject> => {
+  ): Promise<matchScoreObject> => {
     try {
       const currentMatch = await Match.findById(matchId);
       if (!currentMatch) {
         throw new Error("Match to update score in has not been found");
       }
       let currentScore = currentMatch.score;
-      let addScore;
+      let newScore;
+      let matchFinished: boolean = false;
       if (setWinner === 1) {
-        addScore = {
+        newScore = {
           team1: currentScore.team1 + 1,
           team2: currentScore.team2,
         };
       } else {
-        addScore = {
+        newScore = {
           team1: currentScore.team1,
           team2: currentScore.team2 + 1,
         };
       }
-      await Match.findByIdAndUpdate(matchId, { score: addScore });
-      return addScore;
+      await Match.findByIdAndUpdate(matchId, { score: newScore });
+      if (newScore.team1 === 2 || newScore.team2 === 2) {
+        this.finishMatch(matchId, newScore);
+        matchFinished = true;
+      }
+      return {
+        matchFinished,
+        score: newScore,
+      };
     } catch (error) {
       throw new Error(
         "Something went wrong updating the match score" + error.message
       );
+    }
+  };
+
+  private finishMatch = async (matchId: string, finalScore: scoreObject) => {
+    const winner = finalScore.team1 === 2 ? "team 1" : "team 2";
+    try {
+      await Match.findByIdAndUpdate(matchId, {
+        winner: winner,
+        "date.endDate": Date.now(),
+      });
+    } catch (error) {
+      throw new Error("Something went wrong trying to finish the match");
     }
   };
 }

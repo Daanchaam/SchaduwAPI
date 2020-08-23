@@ -1,5 +1,6 @@
 import Match from "../models/matchModel";
 import Game from "../models/gamesModel";
+import Tiebreak from "../models/tiebreakModel";
 import setController from "./setController";
 import { completeScoreObject } from "../models/scoreModel";
 
@@ -25,6 +26,7 @@ class gameController {
       }
       let sets = match.score;
       let setFinished: boolean = false;
+      let matchFinished: boolean = false;
       // Set the winner
       await Game.findByIdAndUpdate(gameId, { winner: `team ${gameWinner}` });
       // Update and retrieve the set score
@@ -40,8 +42,14 @@ class gameController {
         await this.createNewGame(setId, false);
       } else if (games.team1 === 6 || games.team2 === 6) {
         // otherwise, finish the set and return the set score
-        sets = await setController.finishSet(matchId, setId, games);
+        const finishedSet = await setController.finishSet(
+          matchId,
+          setId,
+          games
+        );
+        sets = finishedSet.score;
         setFinished = true;
+        matchFinished = finishedSet.matchFinished || false;
       } else {
         await this.createNewGame(setId, false);
       }
@@ -50,6 +58,7 @@ class gameController {
         games: games,
         gameFinished: true,
         setFinished: setFinished,
+        matchFinished: matchFinished,
         sets: sets,
       };
     } catch (error) {
@@ -63,20 +72,19 @@ class gameController {
     setId: string,
     tiebreak: boolean
   ): Promise<void> => {
-    let newGame;
+    let savedGame;
     if (tiebreak) {
-      newGame = new Game({
+      const newTiebreak = new Tiebreak({
         startTime: Date.now(),
         tieBreak: true,
       });
+      savedGame = await newTiebreak.save();
     } else {
-      newGame = new Game({
+      const newGame = new Game({
         startTime: Date.now(),
       });
+      savedGame = await newGame.save();
     }
-    const savedGame = await newGame.save();
-    console.log(savedGame + "is saved game");
-    console.log(tiebreak + "tiebreak");
     try {
       await setController.addGameToSet(savedGame._id, setId);
       return;

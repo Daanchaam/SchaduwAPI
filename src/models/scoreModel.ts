@@ -13,6 +13,11 @@ export interface completeScoreObject {
   matchFinished?: boolean;
 }
 
+export interface matchScoreObject {
+  score: scoreObject;
+  matchFinished?: boolean;
+}
+
 export interface scoreObject {
   team1: number;
   team2: number;
