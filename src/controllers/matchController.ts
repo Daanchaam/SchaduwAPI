@@ -27,7 +27,7 @@ class matchController {
       !team2.some((e: any) => e.name === serving)
     ) {
       return res.status(400).json({
-        message: `Is the serving person not joining the match? Serving person: ${serving}, match players: ${team1[0].name}, ${team2}`,
+        message: `Is the serving person not joining the match?`,
       });
     }
     const newMatch = new Match({
@@ -40,7 +40,7 @@ class matchController {
     });
     const savedMatch = await newMatch.save();
     try {
-      await setController.createNewSet(savedMatch._id);
+      await setController.createNewSet(savedMatch._id, serving);
     } catch (error) {
       throw new Error("Set could not be added to the match!" + error.message);
     }

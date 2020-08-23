@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface Tiebreak extends Document {
+  firstServing: string;
   winner: string;
   startTime: Date;
   score: {
@@ -14,6 +15,9 @@ export interface Tiebreak extends Document {
 }
 
 const tiebreakSchema: Schema = new Schema({
+  firstServing: {
+    type: String,
+  },
   winner: {
     type: String,
   },

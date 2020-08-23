@@ -10,10 +10,9 @@ class pointController {
   /**
    * Add point to a game given the point structure and the ID of match and game
    */
-  addPoint = async (req: express.Request, res: express.Response) => {
+  public addPoint = async (req: express.Request, res: express.Response) => {
     const winner: number | undefined = req.body.winner;
     const cause: string | undefined = req.body.cause;
-    const letPlayed: boolean | undefined = req.body.letPlayed;
     const matchId: string | undefined = req.body.matchId;
 
     let lastGame: GameModel | TiebreakModel | null;
@@ -87,7 +86,6 @@ class pointController {
       const newPoint = new Point({
         winner,
         cause,
-        letPlayed,
         scoreAfter: calculatedScore.score,
       });
       const savedPoint = await newPoint.save();

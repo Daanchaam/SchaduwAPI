@@ -4,6 +4,7 @@ import Game from "../models/gamesModel";
 import Tiebreak from "../models/tiebreakModel";
 import { scoreObject, matchScoreObject } from "../models/scoreModel";
 import matchController from "./matchController";
+import gameController from "./gameController";
 
 class setController {
   /**
@@ -102,23 +103,32 @@ class setController {
    * Creates a tiebreak game instead of a regular game if supertiebreak is set to true
    * @param {string} matchId the match ID for the set to be added to
    */
-  public createNewSet = async (matchId: string) => {
+  public createNewSet = async (matchId: string, serving?: string) => {
     try {
       const currentMatch = await Match.findById(matchId);
+      let currentServe: string | undefined = serving!;
+      if (!serving) {
+        currentServe = await gameController.findOutWhoServesNext(matchId);
+      }
+      if (!currentServe) {
+        throw new Error(
+          "Set could not be created because we could not figure out who is serving next"
+        );
+      }
       let savedGame;
-      if (currentMatch?.superTiebreak && currentMatch.sets.length === 2) {
-        console.log("match should have a supertiebreak now??");
+      if (currentMatch!.superTiebreak && currentMatch!.sets.length === 2) {
         const newTiebreak = new Tiebreak({
           startTime: Date.now(),
+          firstServing: currentServe,
         });
         savedGame = await newTiebreak.save();
       } else {
         const newGame = new Game({
           startTime: Date.now(),
+          serving: currentServe,
         });
         savedGame = await newGame.save();
       }
-
       const newSet = new Sets({
         games: [
           {

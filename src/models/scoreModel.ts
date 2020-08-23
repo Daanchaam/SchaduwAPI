@@ -11,6 +11,7 @@ export interface completeScoreObject {
   gameFinished?: boolean;
   setFinished?: boolean;
   matchFinished?: boolean;
+  newServeNecessary?: boolean;
 }
 
 export interface matchScoreObject {
