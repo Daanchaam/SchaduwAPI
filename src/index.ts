@@ -15,7 +15,6 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-app.use(express.static(path.join(__dirname, "../client/public")));
 app.use(express.json());
 app.use(cors());
 
@@ -32,7 +31,7 @@ io.on("connection", function (socket) {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server is running on port: ${PORT}`));
+app.listen(PORT, () => console.log(`Server is running on port: ${PORT}`));
 
 // Mongoose setup
 mongoose.connect(
@@ -50,6 +49,9 @@ mongoose.connect(
 );
 
 // Route setup
+app.get("/", (req, res) => {
+  res.send("test");
+});
 app.use("/api/user", require("./routes/userRouter"));
 app.use(
   "/api/match",
