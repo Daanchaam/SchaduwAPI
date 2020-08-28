@@ -1,7 +1,7 @@
 import matchController from "../controllers/matchController";
 import pointController from "../controllers/pointController";
 import { Router } from "express";
-import gameController from "../controllers/gameController";
+import serveController from "../controllers/serveController";
 
 const router = Router();
 
@@ -23,7 +23,7 @@ router.put("/addPoint", async (req, res) => {
 
 router.patch("/addServing", async (req, res) => {
   try {
-    gameController.addServing(req, res);
+    serveController.addServing(req, res);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
