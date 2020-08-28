@@ -14,8 +14,18 @@ export interface completeScoreObject {
   newServeNecessary?: boolean;
 }
 
+export interface gameScoreObject {
+  score: string;
+  gameFinished?: boolean;
+}
+
+export interface setScoreObject {
+  games: scoreObject;
+  setFinished?: boolean;
+}
+
 export interface matchScoreObject {
-  score: scoreObject;
+  sets: scoreObject;
   matchFinished?: boolean;
 }
 

@@ -2,9 +2,9 @@ import Match from "../models/matchModel";
 import Sets from "../models/setsModel";
 import Game from "../models/gamesModel";
 import Tiebreak from "../models/tiebreakModel";
-import { scoreObject, matchScoreObject } from "../models/scoreModel";
+import { scoreObject, setScoreObject } from "../models/scoreModel";
 import matchController from "./matchController";
-import gameController from "./gameController";
+import serveController from "./serveController";
 
 class setController {
   /**
@@ -22,12 +22,12 @@ class setController {
       if (!currentSet) {
         throw new Error("Set to add game to could not be found");
       }
-      if (currentSet.games.length === 13) {
+      if (currentSet.games.length > 13) {
         throw new Error("maybe we should start a new set");
       }
       await Sets.findByIdAndUpdate(setId, { $push: { games: { id: gameId } } });
     } catch (error) {
-      throw new Error("something went wrong updating the set");
+      throw new Error("something went wrong updating the set" + error.message);
     }
   };
 
@@ -40,27 +40,41 @@ class setController {
   public updateSetScore = async (
     gameWinner: number,
     setId: string
-  ): Promise<scoreObject> => {
+  ): Promise<setScoreObject> => {
     try {
       const currentSet = await Sets.findById(setId);
       if (!currentSet) {
         throw new Error("Set to update score in has not been found");
       }
       let currentScore = currentSet.score;
-      let addScore;
+      let newScore: { team1: number; team2: number };
       if (gameWinner === 1) {
-        addScore = {
+        newScore = {
           team1: currentScore.team1 + 1,
           team2: currentScore.team2,
         };
       } else {
-        addScore = {
+        newScore = {
           team1: currentScore.team1,
           team2: currentScore.team2 + 1,
         };
       }
-      await Sets.findByIdAndUpdate(setId, { score: addScore });
-      return addScore;
+      await Sets.findByIdAndUpdate(setId, { score: newScore });
+
+      let setFinished: boolean = false;
+      if (newScore.team1 === 7 || newScore.team2 === 7) {
+        setFinished = true;
+      } else if (newScore.team1 === 6 && newScore.team2 === 6) {
+        setFinished = false;
+      } else if (
+        (newScore.team1 === 6 && newScore.team2 === 5) ||
+        (newScore.team1 === 5 && newScore.team2 === 6)
+      ) {
+        setFinished = false;
+      } else if (newScore.team1 === 6 || newScore.team2 === 6) {
+        setFinished = true;
+      }
+      return { games: newScore, setFinished };
     } catch (error) {
       throw new Error(
         "Something went wrong updating the set score" + error.message
@@ -69,30 +83,13 @@ class setController {
   };
 
   /**
-   *
-   * @param {String} matchId the
+   * Finishes up the set given the winner of the set
    * @param {String} setId the set ID
-   * @param {scoreObject} score the score in the set in games
-   * @returns setIsFinished and the score in sets
    */
-  public finishSet = async (
-    matchId: string,
-    setId: string,
-    score: scoreObject
-  ): Promise<matchScoreObject> => {
-    let winner = score.team1 > score.team2 ? 1 : 2;
+  public finishSet = async (winner: number, setId: string): Promise<void> => {
     let winnerText = winner === 1 ? "team 1" : "team 2";
     try {
-      // Update the match score
-      const updatedMatch = await matchController.updateMatchScore(
-        winner,
-        matchId
-      );
       await Sets.findByIdAndUpdate(setId, { winner: winnerText });
-      if (!updatedMatch.matchFinished) {
-        await this.createNewSet(matchId);
-      }
-      return updatedMatch;
     } catch (error) {
       throw new Error("Something went wrong finishing the set" + error.message);
     }
@@ -101,43 +98,25 @@ class setController {
   /**
    * Creates a new set and adds it to the match.
    * Creates a tiebreak game instead of a regular game if supertiebreak is set to true
-   * @param {string} matchId the match ID for the set to be added to
+   * @param {string} gameId ID of the first game of the set
+   * @returns {string} the ID of the new set
    */
-  public createNewSet = async (matchId: string, serving?: string) => {
+
+  // TODO hier verdergaan. Deze moet nog aangepast worden om echt alleen een nieuwe set te maken,
+  // AddsetToMatch wordt toch alleen aangeroepen als er al een match is en een set in zit (je moet eerst
+  // die match aanmaken, misshcien nog een foutmelding voor maken)
+  // Verder gewoon in de pointcontroller doorgaan
+  public createNewSet = async (gameId: string): Promise<string> => {
     try {
-      const currentMatch = await Match.findById(matchId);
-      let currentServe: string | undefined = serving!;
-      if (!serving) {
-        currentServe = await gameController.findOutWhoServesNext(matchId);
-      }
-      if (!currentServe) {
-        throw new Error(
-          "Set could not be created because we could not figure out who is serving next"
-        );
-      }
-      let savedGame;
-      if (currentMatch!.superTiebreak && currentMatch!.sets.length === 2) {
-        const newTiebreak = new Tiebreak({
-          startTime: Date.now(),
-          firstServing: currentServe,
-        });
-        savedGame = await newTiebreak.save();
-      } else {
-        const newGame = new Game({
-          startTime: Date.now(),
-          serving: currentServe,
-        });
-        savedGame = await newGame.save();
-      }
       const newSet = new Sets({
         games: [
           {
-            id: savedGame._id,
+            id: gameId,
           },
         ],
       });
       const savedSet = await newSet.save();
-      matchController.addSetToMatch(savedSet._id, matchId);
+      return savedSet._id;
     } catch (error) {
       throw new Error(
         "something went wrong creating the new set" + error.message

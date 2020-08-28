@@ -2,6 +2,7 @@ import Match from "../models/matchModel";
 import express from "express";
 import setController from "./setController";
 import { scoreObject, matchScoreObject } from "../models/scoreModel";
+import gameController from "./gameController";
 
 class matchController {
   /**
@@ -40,7 +41,13 @@ class matchController {
     });
     const savedMatch = await newMatch.save();
     try {
-      await setController.createNewSet(savedMatch._id, serving);
+      const newGameId = await gameController.createNewGame(
+        savedMatch._id,
+        false,
+        serving
+      );
+      const newSetId = await setController.createNewSet(newGameId);
+      await this.addSetToMatch(newSetId, savedMatch._id);
     } catch (error) {
       throw new Error("Set could not be added to the match!" + error.message);
     }
@@ -54,8 +61,12 @@ class matchController {
    * Adds a set to a match given both ID's
    * @param {string} setId The ID of the set that has to be added to the match
    * @param {string} matchId the ID of the match that the set has to be added to
+   * @returns {number} of sets in the current match + 1
    */
-  public addSetToMatch = async (setId: string, matchId: string) => {
+  public addSetToMatch = async (
+    setId: string,
+    matchId: string
+  ): Promise<void> => {
     try {
       const currentMatch = await Match.findById(matchId);
       if (!currentMatch) {
@@ -99,12 +110,11 @@ class matchController {
       }
       await Match.findByIdAndUpdate(matchId, { score: newScore });
       if (newScore.team1 === 2 || newScore.team2 === 2) {
-        this.finishMatch(matchId, newScore);
         matchFinished = true;
       }
       return {
         matchFinished,
-        score: newScore,
+        sets: newScore,
       };
     } catch (error) {
       throw new Error(
@@ -113,7 +123,7 @@ class matchController {
     }
   };
 
-  private finishMatch = async (matchId: string, finalScore: scoreObject) => {
+  public finishMatch = async (matchId: string, finalScore: scoreObject) => {
     const winner = finalScore.team1 === 2 ? "team 1" : "team 2";
     try {
       await Match.findByIdAndUpdate(matchId, {
